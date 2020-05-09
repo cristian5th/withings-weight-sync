@@ -41,6 +41,7 @@ __all__ = [str('NokiaCredentials'), str('NokiaAuth'), str('NokiaApi'),
 import arrow
 import datetime
 import json
+import requests
 
 from arrow.parser import ParserError
 from requests_oauthlib import OAuth2Session
@@ -80,11 +81,19 @@ class NokiaAuth(object):
         )[0]
 
     def get_credentials(self, code):
-        tokens = self._oauth().fetch_token(
-            '%s/oauth2/token' % self.URL,
-            code=code,
-            timeout=2,
-            client_secret=self.consumer_secret)
+        url = '%s/oauth2/token'%self.URL
+
+        r = requests.post(
+            url, 
+            data={
+                'grant_type':'authorization_code',
+                'client_id':self.client_id,
+                'client_secret':self.consumer_secret,
+                'code':code,
+                'redirect_uri':self.callback_uri
+            })
+
+        tokens = r.json()
 
         return NokiaCredentials(
             access_token=tokens['access_token'],
