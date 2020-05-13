@@ -93,7 +93,7 @@ def setup_nokia( options, config ):
 
     if options.auth_serv is None:
         auth_serv_resp = input('Spin up HTTP server to automate authorization? [y/n] : ')
-        if auth_serv_resp is 'y':
+        if auth_serv_resp == 'y':
             options.auth_serv = True
         else:
             options.auth_serv = False
@@ -207,7 +207,7 @@ def save_config():
     # New Nokia tokens (if refreshed)
     if client_nokia:
         creds = client_nokia.get_credentials()
-        if config.get('nokia', 'access_token') is not creds.access_token:
+        if config.get('nokia', 'access_token') != creds.access_token:
             config.set('nokia', 'access_token', creds.access_token)
             config.set('nokia', 'token_expiry', creds.token_expiry)
             config.set('nokia', 'refresh_token', creds.refresh_token)
@@ -339,7 +339,7 @@ elif command == 'sync':
     if len(groups) == 0:
         print("Their is no new measurement to sync.")
         save_config()
-        sys.exit(0);
+        sys.exit(0)
 
     if service == 'garmin':
 
@@ -363,7 +363,7 @@ elif command == 'sync':
         fit.write_file_creator()
         fit.write_device_info(timestamp=next_sync)
         for m in groups:
-            weight = m.get_measure(types['weight']);
+            weight = m.get_measure(types['weight'])
             if weight:
                 bmi = None
                 if height:
