@@ -1,0 +1,8 @@
+#
+####### requirements.txt #######
+#
+###### Requirements without Version Specifiers ######
+arrow
+requests
+requests-oauthlib
+#

@@ -11,6 +11,7 @@ Get weight from Nokia Health and update to Garmin Connect or Smashrun.
 
     - Python 3.X
     - Python libraries: arrow, requests, requests-oauthlib
+        $ sudo pip3 install -r requirements.txt
     
 3. [Register](https://account.withings.com/partner/add_oauth2) an application with Nokia Health and obtain a consumer key and secret.
     1. logo: the requirements are quite strict, [feel free to use this one](https://github.com/magnific0/nokia-weight-sync/blob/master/logo256w.png)
