@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 #
 """
-Python library for the Nokia Health API
+Python library for the Withigns Health API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Nokia Health API
+Withings Health API
 <http://developer.withings.com/oauth2/>
 
 Uses Oauth 2.0 to authentify. You need to obtain a consumer key
-and consumer secret from Nokia by creating an application
+and consumer secret from Withings by creating an application
 here: <https://account.withings.com/partner/add_oauth2>
 
 Usage:
 
-auth = NokiaAuth(CLIENT_ID, CONSUMER_SECRET, CALLBACK_URL)
+auth = WithingsAuth(CLIENT_ID, CONSUMER_SECRET, CALLBACK_URL)
 authorize_url = auth.get_authorize_url()
 print("Go to %s allow the app and copy the url you are redirected to." % authorize_url)
 authorization_response = raw_input('Please enter your full authorization response url: ')
 creds = auth.get_credentials(authorization_response)
 
-client = NokiaApi(creds)
+client = WithingsApi(creds)
 measures = client.get_measures(limit=1)
 print("Your last measured weight: %skg" % measures[0].weight)
 
@@ -29,14 +29,14 @@ creds = client.get_credentials()
 
 from __future__ import unicode_literals
 
-__title__ = 'nokia'
+__title__ = 'withings'
 __version__ = '0.4.0'
 __author__ = 'Maxime Bouroumeau-Fuseau, and ORCAS'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2012-2017 Maxime Bouroumeau-Fuseau, and ORCAS'
 
-__all__ = [str('NokiaCredentials'), str('NokiaAuth'), str('NokiaApi'),
-           str('NokiaMeasures'), str('NokiaMeasureGroup')]
+__all__ = [str('WithingsCredentials'), str('WithingsAuth'), str('WithingsApi'),
+           str('WithingsMeasures'), str('WithingsMeasureGroup')]
 
 import arrow
 import datetime
@@ -47,7 +47,7 @@ from arrow.parser import ParserError
 from requests_oauthlib import OAuth2Session
 from oauthlib.oauth2 import WebApplicationClient
 
-class NokiaCredentials(object):
+class WithingsCredentials(object):
     def __init__(self, access_token=None, token_expiry=None, token_type=None,
                  refresh_token=None, user_id=None,
                  client_id=None, consumer_secret=None):
@@ -60,7 +60,7 @@ class NokiaCredentials(object):
         self.consumer_secret = consumer_secret
 
 
-class NokiaAuth(object):
+class WithingsAuth(object):
     URL = 'https://account.withings.com'
 
     def __init__(self, client_id, consumer_secret, callback_uri,
@@ -95,7 +95,7 @@ class NokiaAuth(object):
 
         tokens = r.json()
 
-        return NokiaCredentials(
+        return WithingsCredentials(
             access_token=tokens['access_token'],
             token_expiry=str(ts()+int(tokens['expires_in'])),
             token_type=tokens['token_type'],
@@ -123,7 +123,7 @@ def ts():
     ).total_seconds())
 
 
-class NokiaApi(object):
+class WithingsApi(object):
     URL = 'https://wbsapi.withings.net'
 
     def __init__(self, credentials):
@@ -140,7 +140,7 @@ class NokiaApi(object):
             credentials.client_id,
             token=self.token,
             client=oauth_client,
-            auto_refresh_url='{}/oauth2/token'.format(NokiaAuth.URL),
+            auto_refresh_url='{}/oauth2/token'.format(WithingsAuth.URL),
             auto_refresh_kwargs={
                 'client_id': credentials.client_id,
                 'client_secret': credentials.consumer_secret,
@@ -180,15 +180,15 @@ class NokiaApi(object):
     def get_activities(self, **kwargs):
         r = self.request('measure', 'getactivity', params=kwargs, version='v2')
         activities = r['activities'] if 'activities' in r else [r]
-        return [NokiaActivity(act) for act in activities]
+        return [WithingsActivity(act) for act in activities]
 
     def get_measures(self, **kwargs):
         r = self.request('measure', 'getmeas', kwargs)
-        return NokiaMeasures(r)
+        return WithingsMeasures(r)
 
     def get_sleep(self, **kwargs):
         r = self.request('sleep', 'get', params=kwargs, version='v2')
-        return NokiaSleep(r)
+        return WithingsSleep(r)
 
     def subscribe(self, callback_url, comment, **kwargs):
         params = {'callbackurl': callback_url, 'comment': comment}
@@ -213,7 +213,7 @@ class NokiaApi(object):
         return r['profiles']
 
 
-class NokiaObject(object):
+class WithingsObject(object):
     def __init__(self, data):
         self.set_attributes(data)
 
@@ -226,18 +226,18 @@ class NokiaObject(object):
                 setattr(self, key, val)
 
 
-class NokiaActivity(NokiaObject):
+class WithingsActivity(WithingsObject):
     pass
 
 
-class NokiaMeasures(list, NokiaObject):
+class WithingsMeasures(list, WithingsObject):
     def __init__(self, data):
-        super(NokiaMeasures, self).__init__(
-            [NokiaMeasureGroup(g) for g in data['measuregrps']])
+        super(WithingsMeasures, self).__init__(
+            [WithingsMeasureGroup(g) for g in data['measuregrps']])
         self.set_attributes(data)
 
 
-class NokiaMeasureGroup(NokiaObject):
+class WithingsMeasureGroup(WithingsObject):
     MEASURE_TYPES = (
         ('weight', 1),
         ('height', 4),
@@ -258,7 +258,7 @@ class NokiaMeasureGroup(NokiaObject):
     )
 
     def __init__(self, data):
-        super(NokiaMeasureGroup, self).__init__(data)
+        super(WithingsMeasureGroup, self).__init__(data)
         for n, t in self.MEASURE_TYPES:
             self.__setattr__(n, self.get_measure(t))
 
@@ -278,13 +278,13 @@ class NokiaMeasureGroup(NokiaObject):
         return None
 
 
-class NokiaSleepSeries(NokiaObject):
+class WithingsSleepSeries(WithingsObject):
     def __init__(self, data):
-        super(NokiaSleepSeries, self).__init__(data)
+        super(WithingsSleepSeries, self).__init__(data)
         self.timedelta = self.enddate - self.startdate
 
 
-class NokiaSleep(NokiaObject):
+class WithingsSleep(WithingsObject):
     def __init__(self, data):
-        super(NokiaSleep, self).__init__(data)
-        self.series = [NokiaSleepSeries(series) for series in self.series]
+        super(WithingsSleep, self).__init__(data)
+        self.series = [WithingsSleepSeries(series) for series in self.series]

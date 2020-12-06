@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nokia Health to Garmin Connect Weight Updater
+Withings Health to Garmin Connect Weight Updater
 """
 
 __author__ = "Jacco Geul"
@@ -14,7 +14,7 @@ from garmin import GarminConnect
 from smashrun import Smashrun
 from oauthlib.oauth2 import MobileApplicationClient
 import urllib.parse
-import nokia
+import withings
 import os.path
 import sys
 import time
@@ -24,13 +24,13 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 import ssl
 
-nokia_auth_code = None
+withings_auth_code = None
 
 # Extremely basic HTTP server for handling authorization response
 class AuthorizationRepsponseHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        global nokia_auth_code
-        nokia_auth_code = parse_qs(urlparse(self.path).query).get('code', None)[0]
+        global withings_auth_code
+        withings_auth_code = parse_qs(urlparse(self.path).query).get('code', None)[0]
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
@@ -47,7 +47,7 @@ Commands:
   setup, sync, last, userinfo, subscribe, unsubscribe, list_subscriptions
 
 Services:
-  nokia, garmin, smashrun, smashrun_code (setup only)
+  withings, garmin, smashrun, smashrun_code (setup only)
 
 Copyright (c) 2018 by Jacco Geul <jacco@geul.net>
 Licensed under GNU General Public License 3.0 <https://github.com/magnific0/nokia-weight-sync/LICENSE>
@@ -77,19 +77,19 @@ if config.has_section('garmin'):
     if config.has_option('garmin', 'password'):
         config.set('garmin', 'password', base64.b64decode(config.get('garmin', 'password').encode('ascii')).decode('ascii'))
 
-def setup_nokia( options, config ):
-    """ Setup the Nokia Health API
+def setup_withings( options, config ):
+    """ Setup the Withings Health API
     """
-    global nokia_auth_code
+    global withings_auth_code
     if options.key is None:
-        print("To set a connection with Nokia Health you must have registered an application at https://account.withings.com/partner/add_oauth2 .")
+        print("To set a connection with Withings Health you must have registered an application at https://account.withings.com/partner/add_oauth2 .")
         options.key = input('Please enter the client id: ')
 
     if options.secret is None:
         options.secret = input('Please enter the consumer secret: ')
 
     if options.callback is None:
-        options.callback = input('Please enter the callback url known by Nokia: ')
+        options.callback = input('Please enter the callback url known by Withings: ')
 
     if options.auth_serv is None:
         auth_serv_resp = input('Spin up HTTP server to automate authorization? [y/n] : ')
@@ -107,10 +107,10 @@ def setup_nokia( options, config ):
         certfile = None
         if httpd_ssl and not certfile:
             print("Your callback url is over https, but no certificate is present.")
-            print("Change the scheme to http (also over at Nokia!) or specify a certfile above.")
+            print("Change the scheme to http (also over at Withings!) or specify a certfile above.")
             exit(0)
 
-    auth = nokia.NokiaAuth(options.key, options.secret, options.callback)
+    auth = withings.WithingsAuth(options.key, options.secret, options.callback)
     authorize_url = auth.get_authorize_url()
     print("Visit: %s\nand select your user and click \"Allow this app\"." % authorize_url)
 
@@ -124,20 +124,20 @@ def setup_nokia( options, config ):
         print("After redirection to your callback url find the authorization code in the url.")
         print("Example: https://your_original_callback?code=abcdef01234&state=XFZ")
         print("         example value to copy: abcdef01234")
-        nokia_auth_code = input('Please enter the authorization code: ')
-    creds = auth.get_credentials(nokia_auth_code)
+        withings_auth_code = input('Please enter the authorization code: ')
+    creds = auth.get_credentials(withings_auth_code)
 
-    if not config.has_section('nokia'):
-        config.add_section('nokia')
+    if not config.has_section('withings'):
+        config.add_section('withings')
 
-    config.set('nokia', 'consumer_key', options.key)
-    config.set('nokia', 'consumer_secret', options.secret)
-    config.set('nokia', 'callback_uri', options.callback)
-    config.set('nokia', 'access_token', creds.access_token)
-    config.set('nokia', 'token_expiry', creds.token_expiry)
-    config.set('nokia', 'token_type', creds.token_type)
-    config.set('nokia', 'refresh_token', creds.refresh_token)
-    config.set('nokia', 'user_id', creds.user_id)
+    config.set('withings', 'consumer_key', options.key)
+    config.set('withings', 'consumer_secret', options.secret)
+    config.set('withings', 'callback_uri', options.callback)
+    config.set('withings', 'access_token', creds.access_token)
+    config.set('withings', 'token_expiry', creds.token_expiry)
+    config.set('withings', 'token_type', creds.token_type)
+    config.set('withings', 'refresh_token', creds.refresh_token)
+    config.set('withings', 'user_id', creds.user_id)
 
 def setup_garmin( options, config ):
     """ Setup the Garmin Connect credentials
@@ -204,13 +204,13 @@ def save_config():
         if config.has_option('garmin', 'password'):
             config.set('garmin', 'password', base64.b64encode( config.get('garmin', 'password').encode('ascii') ).decode('ascii'))
 
-    # New Nokia tokens (if refreshed)
-    if client_nokia:
-        creds = client_nokia.get_credentials()
-        if config.get('nokia', 'access_token') != creds.access_token:
-            config.set('nokia', 'access_token', creds.access_token)
-            config.set('nokia', 'token_expiry', creds.token_expiry)
-            config.set('nokia', 'refresh_token', creds.refresh_token)
+    # New Withings tokens (if refreshed)
+    if client_withings:
+        creds = client_withings.get_credentials()
+        if config.get('withings', 'access_token') != creds.access_token:
+            config.set('withings', 'access_token', creds.access_token)
+            config.set('withings', 'token_expiry', creds.token_expiry)
+            config.set('withings', 'refresh_token', creds.refresh_token)
 
     with open(options.config, 'w') as f:
         config.write(f)
@@ -218,18 +218,18 @@ def save_config():
 
     print("Config file saved to %s" % options.config)
 
-def auth_nokia( config ):
-    """ Authenticate client with Nokia Health
+def auth_withings( config ):
+    """ Authenticate client with Withings Health
     """
-    creds = nokia.NokiaCredentials(config.get('nokia', 'access_token'),
-                                   config.get('nokia', 'token_expiry'),
-                                   config.get('nokia', 'token_type'),
-                                   config.get('nokia', 'refresh_token'),
-                                   config.get('nokia', 'user_id'),
-                                   config.get('nokia', 'consumer_key'),
-                                   config.get('nokia', 'consumer_secret')
+    creds = withings.WithingsCredentials(config.get('withings', 'access_token'),
+                                   config.get('withings', 'token_expiry'),
+                                   config.get('withings', 'token_type'),
+                                   config.get('withings', 'refresh_token'),
+                                   config.get('withings', 'user_id'),
+                                   config.get('withings', 'consumer_key'),
+                                   config.get('withings', 'consumer_secret')
                                    )
-    client = nokia.NokiaApi(creds)
+    client = withings.WithingsApi(creds)
     return client
 
 def auth_smashrun( config ):
@@ -246,20 +246,20 @@ def auth_smashrun( config ):
                         token={'access_token':config.get('smashrun', 'token'),'token_type':'Bearer'})
     return client
 
-client_nokia = None
+client_withings = None
 if command != 'setup':
-    client_nokia = auth_nokia( config )
+    client_withings = auth_withings( config )
 
 if command == 'setup':
 
     if len(args) == 1:
         service = args[0]
     else:
-        print("You must provide the name of the service to setup. Available services are: nokia, garmin, smashrun, smashrun_code.")
+        print("You must provide the name of the service to setup. Available services are: withings, garmin, smashrun, smashrun_code.")
         sys.exit(1)
 
-    if service == 'nokia':
-        setup_nokia( options, config )
+    if service == 'withings':
+        setup_withings( options, config )
     elif service == 'garmin':
         setup_garmin( options, config )
     elif service == 'smashrun':
@@ -267,21 +267,21 @@ if command == 'setup':
     elif service == 'smashrun_code':
         setup_smashrun_code( options, config )
     else:
-        print('Unknown service (%s), available services are: nokia, garmin, smashrun, smashrun_code.')
+        print('Unknown service (%s), available services are: withings, garmin, smashrun, smashrun_code.')
         sys.exit(1)
 
 elif command == 'userinfo':
-    print(client_nokia.get_user())
+    print(client_withings.get_user())
 
 elif command == 'last':
-    m = client_nokia.get_measures(limit=1)[0]
+    m = client_withings.get_measures(limit=1)[0]
 
     print(m.date)
     if len(args) == 1:
-        types = dict(nokia.NokiaMeasureGroup.MEASURE_TYPES)
+        types = dict(withings.WithingsMeasureGroup.MEASURE_TYPES)
         print(m.get_measure(types[args[0]]))
     else:
-        for n, t in nokia.NokiaMeasureGroup.MEASURE_TYPES:
+        for n, t in withings.WithingsMeasureGroup.MEASURE_TYPES:
             print("%s: %s" % (n.replace('_', ' ').capitalize(), m.get_measure(t)))
 
 elif command == 'lastn':
@@ -290,7 +290,7 @@ elif command == 'lastn':
         sys.exit(1)
 
     # Get n last measurements
-    mall = client_nokia.get_measures(limit=args[0])
+    mall = client_withings.get_measures(limit=args[0])
 
     for n, m in enumerate(mall):
         # Print clear header and date for each group
@@ -298,7 +298,7 @@ elif command == 'lastn':
         print(m.date)
 
         # Print all types one by one
-        for n, t in nokia.NokiaMeasureGroup.MEASURE_TYPES:
+        for n, t in withings.WithingsMeasureGroup.MEASURE_TYPES:
             print("%s: %s" % (n.replace('_', ' ').capitalize(), m.get_measure(t)))
         print("")
 
@@ -311,7 +311,7 @@ elif command == 'sync-preview':
 
     # Get next measurements
     last_sync = int(config.get(service,'last_sync')) if config.has_option(service, 'last_sync') else 0
-    mall = client_nokia.get_measures(lastupdate=last_sync)
+    mall = client_withings.get_measures(lastupdate=last_sync)
 
     for n, m in enumerate(mall):
         # Print clear header and date for each group
@@ -319,7 +319,7 @@ elif command == 'sync-preview':
         print(m.date)
 
         # Print all types one by one
-        for n, t in nokia.NokiaMeasureGroup.MEASURE_TYPES:
+        for n, t in withings.WithingsMeasureGroup.MEASURE_TYPES:
             print("%s: %s" % (n.replace('_', ' ').capitalize(), m.get_measure(t)))
         print("")
 
@@ -333,8 +333,8 @@ elif command == 'sync':
 
     # Get next measurements
     last_sync = int(config.get(service,'last_sync')) if config.has_option(service, 'last_sync') else 0
-    groups = client_nokia.get_measures(lastupdate=last_sync)
-    types = dict(nokia.NokiaMeasureGroup.MEASURE_TYPES)
+    groups = client_withings.get_measures(lastupdate=last_sync)
+    types = dict(withings.WithingsMeasureGroup.MEASURE_TYPES)
 
     if len(groups) == 0:
         print("Their is no new measurement to sync.")
@@ -353,7 +353,7 @@ elif command == 'sync':
 
         # Get height for BMI calculation
         height = None
-        m = client_nokia.get_measures(limit=1, meastype=types['height'])
+        m = client_withings.get_measures(limit=1, meastype=types['height'])
         if len(m):
             height = m[0].get_measure(types['height'])
 
@@ -390,7 +390,7 @@ elif command == 'sync':
             if weight:
                 break
 
-        print("Last weight from Nokia Health: %s kg taken at %s" % (weight, m.date))
+        print("Last weight from Withings Health: %s kg taken at %s" % (weight, m.date))
 
 
         # Do not repeatidly sync the same value
@@ -409,20 +409,20 @@ elif command == 'sync':
             config.set('smashrun','last_sync', str(m.date.timestamp))
 
     else:
-        print('Unknown service (%s), available services are: nokia, garmin, smashrun')
+        print('Unknown service (%s), available services are: withings, garmin, smashrun')
         save_config()
         sys.exit(1)
 
 elif command == 'subscribe':
-    client_nokia.subscribe(args[0], args[1])
+    client_withings.subscribe(args[0], args[1])
     print("Subscribed %s" % args[0])
 
 elif command == 'unsubscribe':
-    client_nokia.unsubscribe(args[0])
+    client_withings.unsubscribe(args[0])
     print("Unsubscribed %s" % args[0])
 
 elif command == 'list_subscriptions':
-    l = client_nokia.list_subscriptions()
+    l = client_withings.list_subscriptions()
     if len(l) > 0:
         for s in l:
             print(" - %s " % s['comment'])
