@@ -173,11 +173,11 @@ class FitEncoder_Weight(FitEncoder):
             values,
         ]))
 
-    def write_device_info(self, timestamp, serial_number=None, cum_operationg_time=None, manufacturer=None,
+    def write_device_info(self, device_timestamp, serial_number=None, cum_operationg_time=None, manufacturer=None,
                           product=None, software_version=None, battery_voltage=None, device_index=None,
                           device_type=None, hardware_version=None, battery_status=None):
         content = [
-            (253, FitBaseType.uint32, self.timestamp(timestamp), 1),
+            (253, FitBaseType.uint32, self.timestamp(device_timestamp), 1),
             (3, FitBaseType.uint32z, serial_number, 1),
             (7, FitBaseType.uint32, cum_operationg_time, 1),
             (8, FitBaseType.uint32, None, None),  # unknown field(undocumented)
@@ -202,12 +202,12 @@ class FitEncoder_Weight(FitEncoder):
         header = self.record_header(lmsg_type=self.LMSG_TYPE_DEVICE_INFO)
         self.buf.write(header + values)
 
-    def write_weight_scale(self, timestamp, weight, percent_fat=None, percent_hydration=None,
+    def write_weight_scale(self, weight_timestamp, weight, percent_fat=None, percent_hydration=None,
                            visceral_fat_mass=None, bone_mass=None, muscle_mass=None, basal_met=None,
                            active_met=None, physique_rating=None, metabolic_age=None, visceral_fat_rating=None,
                            bmi=None):
         content = [
-            (253, FitBaseType.uint32, self.timestamp(timestamp), 1),
+            (253, FitBaseType.uint32, self.timestamp(weight_timestamp), 1),
             (0, FitBaseType.uint16, weight, 100),
             (1, FitBaseType.uint16, percent_fat, 100),
             (2, FitBaseType.uint16, percent_hydration, 100),
@@ -253,7 +253,7 @@ class FitEncoder_Weight(FitEncoder):
         return pack('H', crc)
 
     def finish(self):
-        """re-weite file-header, then append crc to end of file"""
+        """re-write file-header, then append crc to end of file"""
         data_size = self.get_size() - self.HEADER_SIZE
         self.write_header(data_size=data_size)
         crc = self.crc()

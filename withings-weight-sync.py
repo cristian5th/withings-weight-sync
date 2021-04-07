@@ -343,7 +343,7 @@ elif command == 'sync':
 
     if service == 'garmin':
 
-        next_sync = groups[-1].date.timestamp
+        next_sync = int(time.mktime(groups[-1].date.timetuple()))
 
         # Do not repeatidly sync the same value
         if next_sync == last_sync:
@@ -361,16 +361,20 @@ elif command == 'sync':
         fit = FitEncoder_Weight()
         fit.write_file_info()
         fit.write_file_creator()
-        fit.write_device_info(timestamp=next_sync)
+        fit.write_device_info(device_timestamp=next_sync)
         for m in groups:
             weight = m.get_measure(types['weight'])
+            water = m.get_measure(types['hydration']);
+            water_percent = None
             if weight:
                 bmi = None
                 if height:
                     bmi = round(weight / pow(height, 2), 1)
+                if water:
+                    water_percent = round(water / weight * 100, 1)
 
-                fit.write_weight_scale(timestamp=m.date.timestamp, weight=weight, percent_fat=m.get_measure(types['fat_ratio']),
-                    percent_hydration=m.get_measure(types['hydration']), bone_mass=m.get_measure(types['bone_mass']), muscle_mass=m.get_measure(types['muscle_mass']),
+                fit.write_weight_scale(weight_timestamp=int(time.mktime(m.date.timetuple())), weight=weight, percent_fat=m.get_measure(types['fat_ratio']),
+                    percent_hydration=water_percent, bone_mass=m.get_measure(types['bone_mass']), muscle_mass=m.get_measure(types['muscle_mass']),
                     bmi=bmi)
 
         fit.finish()
