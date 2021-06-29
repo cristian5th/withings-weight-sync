@@ -4,7 +4,7 @@ from sessioncache import SessionCache
 from datetime import datetime, timedelta
 import urllib.request
 import datetime
-import requests
+import cloudscraper
 import re
 import sys
 import json
@@ -125,7 +125,7 @@ class GarminConnect(object):
     # From https://github.com/cpfair/tapiriik
     
     def _get_session(self, record=None, email=None, password=None):
-        session = requests.Session()
+        session = cloudscraper.CloudScraper()
         
         # JSIG CAS, cool I guess.
         # Not quite OAuth though, so I'll continue to collect raw credentials.
